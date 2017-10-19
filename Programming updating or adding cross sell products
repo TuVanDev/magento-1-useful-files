@@ -1,0 +1,14 @@
+$sku = 'product-sku';
+$product = Mage::getModel('catalog/product')->loadByAttribute('sku', $sku);
+$crosssells = $product->getCrossSellProducts();
+$params = array();
+foreach ($crosssells as $item) {
+    $param[$item->getId()] = array('position' => $item->getPosition());
+}
+$linkedProductId = 3;
+$linkedProductPosition = 1;
+$params[$linkedProductId]= array(
+     'position' => $linkedProductPosition
+)
+$product->setCrossSellLinkData($params);
+$product->save();
