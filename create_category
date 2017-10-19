@@ -1,0 +1,14 @@
+try{
+    $category = Mage::getModel('catalog/category');
+    $category->setName('Category Name');
+    $category->setUrlKey('category-url');
+    $category->setIsActive(0);
+    $category->setDisplayMode(Mage_Catalog_Model_Category::DM_PRODUCT);
+    $category->setIsAnchor(0);
+    $category->setStoreId(Mage::app()->getStore()->getId());
+    $parentCategory = Mage::getModel('catalog/category')->load($parentId);
+    $category->setPath($parentCategory->getPath());
+    $category->save();
+} catch(Exception $e) {
+    var_dump($e);
+}
