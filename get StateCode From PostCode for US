@@ -1,0 +1,35 @@
+$orderId = 94;
+$order = Mage::getModel('sales/order')->load($orderId);
+$shipping = $order->getShippingAddress();
+$regionCode = $shipping->getRegionCode();
+// This code is using for US
+if (strlen($regionCode) != 2) {
+    //echo 'empty';
+    $postCode = $shipping->getPostcode();
+    echo getStateCodeFromPostCode($postCode);
+}
+
+
+function getStateCodeFromPostCode($postCode)
+{
+    $url = "http://maps.googleapis.com/maps/api/geocode/json?address=" . $postCode;
+    $addressInfo = file_get_contents($url);
+    $data = json_decode($addressInfo);
+
+    $stateCode = '';
+    if (count($data->results) > 0) {
+        //break up the components
+        $arrComponents = $data->results[0]->address_components;
+        foreach ($arrComponents as $component) {
+            $type = $component->types[0];
+            if (empty($stateCode) && $type == "administrative_area_level_1") {
+                $stateCode = trim($component->short_name);
+            }
+            if (!empty($stateCode)) {
+                //we're done
+                break;
+            }
+        }
+    }
+    return $stateCode;
+}
