@@ -1,0 +1,29 @@
+//This code using for Sales order address form
+//app/design/adminhtml/default/default/template/sales/order/address/form.phtml
+<script>
+    // set Zip optional/required
+    optionalZipCountries = <?php echo $this->helper('directory')->getCountriesWithOptionalZip(true) ?>;
+    var countryElement = $('country_id');
+    var zipElement = $('postcode');
+
+    Event.observe(countryElement, 'change', function() {
+        var country = this.value;
+        setPostcodeOptional(zipElement, country);
+    });
+
+    // set Zip optional/required on first loading
+    var country = countryElement.value;
+    setPostcodeOptional(zipElement, country);
+
+    function setPostcodeOptional(zipElement, country) {
+        if (optionalZipCountries.indexOf(country) != -1) {
+            while (zipElement.hasClassName('required-entry')) {
+                zipElement.removeClassName('required-entry');
+            }
+            zipElement.up(1).down('label > span.required').hide();
+        } else {
+            zipElement.addClassName('required-entry');
+            zipElement.up(1).down('label > span.required').show();
+        }
+    }
+</script>
