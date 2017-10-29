@@ -1,0 +1,104 @@
+<?php
+
+class Company_Sales_Model_Order_Pdf_Invoice extends Mage_Sales_Model_Order_Pdf_Invoice
+{
+    /**
+     * Return PDF document
+     *
+     * @param  array $invoices
+     * @return Zend_Pdf
+     */
+    public function getPdf($invoices = array())
+    {
+        $this->_beforeGetPdf();
+        $this->_initRenderer('invoice');
+
+        $pdf = new Zend_Pdf();
+        $this->_setPdf($pdf);
+        $style = new Zend_Pdf_Style();
+        $this->_setFontBold($style, 10);
+
+        foreach ($invoices as $invoice) {
+            if ($invoice->getStoreId()) {
+                Mage::app()->getLocale()->emulate($invoice->getStoreId());
+                Mage::app()->setCurrentStore($invoice->getStoreId());
+            }
+            $page  = $this->newPage();
+            $order = $invoice->getOrder();
+            $store = $invoice->getStore();
+            /* Add image */
+            $this->insertLogo($page, $store);
+            /* Add address */
+            $this->insertAddress($page, $store);
+            /* Add head */
+            $this->insertOrder(
+                $page,
+                $order,
+                Mage::getStoreConfigFlag(self::XML_PATH_SALES_PDF_INVOICE_PUT_ORDER_ID, $order->getStoreId())
+            );
+            /* Add document text and number */
+            $this->insertDocumentNumber(
+                $page,
+                Mage::helper('sales')->__('Invoice # ') . $invoice->getIncrementId()
+            );
+            /* Add table */
+            $this->_drawHeader($page);
+            /* Add body */
+            foreach ($invoice->getAllItems() as $item){
+                if ($item->getOrderItem()->getParentItem()) {
+                    continue;
+                }
+                /* Draw item */
+                $this->_drawItem($item, $page, $order);
+                $page = end($pdf->pages);
+            }
+            /* Add totals */
+            $this->insertTotals($page, $invoice);
+            if ($invoice->getStoreId()) {
+                Mage::app()->getLocale()->revert();
+            }
+        }
+        /* Add footer logo */
+        $this->insertFooterLogo($page, $store);
+        $this->_afterGetPdf();
+        return $pdf;
+    }
+
+    public function insertFooterLogo($page, $store)
+    {
+        $this->y = $this->y ? $this->y : 815;
+        $image = Mage::getStoreConfig('sales/identity/footer_logo', $store);
+        if ($image) {
+            $image = Mage::getBaseDir('media') . '/sales/store/logo/' . $image;
+            if (is_file($image)) {
+                $image = Zend_Pdf_Image::imageWithPath($image);
+                $widthLimit  = 400;
+                $heightLimit = 100; //assuming the image is not a "skyscraper"
+                $width       = $image->getPixelWidth();
+                $height      = $image->getPixelHeight();
+
+                //preserving aspect ratio (proportions)
+                $ratio = $width / $height;
+                if ($ratio > 1 && $width > $widthLimit) {
+                    $width  = $widthLimit;
+                    $height = $width / $ratio;
+                } elseif ($ratio < 1 && $height > $heightLimit) {
+                    $height = $heightLimit;
+                    $width  = $height * $ratio;
+                } elseif ($ratio == 1 && $height > $heightLimit) {
+                    $height = $heightLimit;
+                    $width  = $widthLimit;
+                }
+                $y1 = $height / 2.5;
+                $y2 = $y1 + $height / 2;
+                $x1 = 25;
+                $x2 = $x1 + $width;
+
+                //coordinates after transformation are rounded by Zend
+                $page->drawImage($image, 25, $y1, $x2 / 1.5, $y2);
+
+                $this->y = $y1 - 10;
+            }
+        }
+    }
+}
